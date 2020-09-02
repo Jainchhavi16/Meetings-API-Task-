@@ -17,8 +17,6 @@ import (
 
 )
 
-//var client *mongo.Client
-
 type Participant struct{
 	Name      string        `json:"name" bson:"name"`
 	Email_ID  string        `json:"email_id" bson:"email_id"`
@@ -28,11 +26,11 @@ type Participant struct{
 type Meeting struct {
 	//ID      primitive.ObjectID   `json:"_id" bson:"_id"`
 	ID            string          `json:"id" bson:"id"`
-	Title         string		  `json:"title" bson:"title"`
+	Title         string	      `json:"title" bson:"title"`
 	Participants  []Participant   `json:"Participants" bson:"Participants"`
-	Start_time    string          `json:"start_time" bson:"start_time"`
-	End_time      string		  `json:"end_time" bson:"end_time"`	
-	Timestamp     time.Time		  `json:"Timestamp" bson:"Timestamp"`
+	Start_time    time.Time       `json:"start_time" bson:"start_time"`
+	End_time      time.Time	      `json:"end_time" bson:"end_time"`	
+	Timestamp     time.Time	      `json:"Timestamp" bson:"Timestamp"`
 }
 
 /*var CNX = Connection()
@@ -72,7 +70,8 @@ func schedule_meetings(w http.ResponseWriter, r *http.Request) {
             return
 		}
 	}
-	id, _ := randomHex(6)
+	
+	id, _ := randomHex(10)
 	meetingTitle := r.FormValue("title")
 	participant := r.FormValue("participant")
 	email := r.FormValue("email")
@@ -87,6 +86,7 @@ func schedule_meetings(w http.ResponseWriter, r *http.Request) {
 
 	
 }
+
 //insert meeting details in database
 func insertDB(id string, title string, name string, email string, rsvp string, start_time int, end_ime int) {
 
@@ -113,6 +113,7 @@ func insertDB(id string, title string, name string, email string, rsvp string, s
 	if err != nil {
 		panic(err)
 	}
+	
 	fmt.Println(insert.InsertedID, "inserted")
 
 	defer func() {
@@ -122,6 +123,7 @@ func insertDB(id string, title string, name string, email string, rsvp string, s
 	}()
 
 }
+
 //generate id
 func randomHex(n int) (string, error) {
 	bytes := make([]byte, n)
@@ -130,6 +132,7 @@ func randomHex(n int) (string, error) {
 	}
 	return hex.EncodeToString(bytes), nil
 }
+
 //possibility of scheduling meeting
 func possible(email_id string, start_time int) bool {
 
@@ -139,7 +142,7 @@ func possible(email_id string, start_time int) bool {
 
 	collection := client.Database("db").Collection("meetings")
 
-	cursor, err := collection.Find(ctx, bson.D{Start_time: {$gte: start_time, $lt: end_time}},RSVP: "yes", Participants: bson.D{Email: email_id}})
+	cursor, err := collection.Find(ctx, bson.D{Start_time: {"$gte": start_time, "$lt": end_time}},RSVP: "yes", Participants: bson.D{Email: email_id}})
 
 	if err != nil {
 		fmt.Println(" error: ", err)
@@ -190,13 +193,24 @@ func meeting_from_id(w http.ResponseWriter, r *http.Request) {
 	}()
 	json.NewEncoder(w).Encode(Meeting_by_Id)
 }
+
 //return meetings in a given time range
 func meetings_during_time(w http.ResponseWriter, r *http.Request) {
 
-	u, _ := url.Parse(r.URL.String())
-	q, _ := url.ParseQuery(u.RawQuery)
-	start_time, err := strconv.ParseInt(q.Get("start"), 10, 32)
-	end_time, err := strconv.ParseInt(q.Get("end"), 10, 32)
+	if r.Method == "GET" {
+
+		start := r.URL.Query().Get("start")
+		end := r.URL.Query().Get("end")
+
+		if start == "" || end == "" {
+			http.Error(w, "Invalid time", http.StatusBadRequest)
+			return
+		}
+	
+	form := "2020-08-31T15:41:04+00:00"
+
+	start_time, err := time.Parse(form, start)
+	end_time, err := time.Parse(form, end)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -204,7 +218,7 @@ func meetings_during_time(w http.ResponseWriter, r *http.Request) {
 
 	collection := client.Database("db").Collection("meetings")
 
-	cursor, err := meetingCollection.Find(ctx, bson.D{{Start_time: {$gte: start_time, $lte: end_time}}, {End_time: {$gte: start_time, $lte: end_time}}}) 
+	cursor, err := meetingCollection.Find(ctx, bson.D{{Start_time: {"$gte": start_time, "$lte": end_time}}, {End_time: {"$gte": start_time, "$lte": end_time}}}) 
 
 	if err != nil {
 		fmt.Println(" ERROR: %v", err)
@@ -227,10 +241,14 @@ func meetings_during_time(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(Meetings_by_Time)
 }
+	
 //return meetings of a participant
 func  meetings_of_participant(w http.ResponseWriter, r *http.Request) {
 
-	email :=r.URL.Path[len("/meetings?participant="):]
+	u, _ := url.Parse(r.URL.String())
+	q, _ := url.ParseQuery(u.RawQuery)
+
+	email := q.Get("participant")
 	
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
