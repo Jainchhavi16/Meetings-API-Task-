@@ -9,13 +9,10 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-	//"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
-	//"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
+        "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"crypto/rand"
 	"encoding/hex"
 
 )
@@ -149,11 +146,8 @@ func possible(email_id string, start_time int) bool {
 		defer cursor.Close(ctx)
 
 	} else {
-
 		for cursor.Next(ctx) {
-
 			err := cursor.Decode(&Meetings_Of_Participant)
-
 			if err != nil {
 				fmt.Println("error:", err)
 				os.Exit(1)
@@ -161,9 +155,7 @@ func possible(email_id string, start_time int) bool {
 			else{
 				return false
 			}
-
 		}
-		
 	}
 
 	defer func() {
@@ -196,9 +188,7 @@ func meeting_from_id(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 	}()
-
 	json.NewEncoder(w).Encode(Meeting_by_Id)
-	
 }
 //return meetings in a given time range
 func meetings_during_time(w http.ResponseWriter, r *http.Request) {
@@ -219,20 +209,16 @@ func meetings_during_time(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(" ERROR: %v", err)
 		defer cursor.Close(ctx)
-
 	} 
 	else {
 		for cursor.Next(ctx) {
-
 			err := cursor.Decode(&Meetings_by_Time)
-
 			if err != nil {
 				log.Fatal(err)
 				os.Exit(1)
 			}
 		}
 	}
-
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
 			panic(err)
@@ -240,7 +226,6 @@ func meetings_during_time(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	json.NewEncoder(w).Encode(Meetings_by_Time)
-	
 }
 //return meetings of a participant
 func  meetings_of_participant(w http.ResponseWriter, r *http.Request) {
@@ -261,16 +246,13 @@ func  meetings_of_participant(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		for cursor.Next(ctx) {
-
 			err := cursor.Decode(&Meetings_Of_Participant)
-
 			if err != nil {
 				fmt.Println(" error:", err)
 				os.Exit(1)
 			}
 		}
 	}
-
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
 			panic(err)
